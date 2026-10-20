@@ -321,7 +321,8 @@ class blea extends eqLogic {
 		$user = $remoteObject->getConfiguration('remoteUser');
 		$device = $remoteObject->getConfiguration('remoteDevice');
 		$script_path = '/home/' . $user . '/blead/resources/blead';
-		$cmd = '/usr/bin/python3 ' . $script_path . '/blead.py';
+		$python = '/home/' . $user . '/blead/resources/python_venv/bin/python3';
+		$cmd = 'python=' . escapeshellarg($python) . '; [ -x "$python" ] || python=/usr/bin/python3; "$python" ' . $script_path . '/blead.py';
 		$cmd .= ' --loglevel ' . log::convertLogLevel(log::getLogLevel('blea'));
 		$cmd .= ' --device ' . $device;
 		$cmd .= ' --socketport ' . config::byKey('socketport', 'blea');
@@ -444,6 +445,13 @@ class blea extends eqLogic {
 		$return['log'] = 'blea_update';
 		$return['progress_file'] = jeedom::getTmpFolder('blea') . '/dependance';
 		$return['state'] = 'ok';
+		$python = __DIR__ . '/../../resources/python_venv/bin/python3';
+		if (is_executable($python)) {
+			$modules = 'import bluepy.btle, bluetooth, requests, serial, pyudev, PIL, numpy, cryptography; from Crypto.Cipher import AES';
+			exec(escapeshellarg($python) . ' -c ' . escapeshellarg($modules) . ' 2>/dev/null', $output, $status);
+			$return['state'] = ($status === 0) ? 'ok' : 'nok';
+			return $return;
+		}
 		if (exec(system::getCmdSudo() . system::get('cmd_check') . '-E "python3\-serial|python3\-requests|python3\-pyudev|rfkill" | wc -l') < 4) {
 			$return['state'] = 'nok';
 		}
@@ -472,7 +480,11 @@ class blea extends eqLogic {
 		}
 		$port = jeedom::getBluetoothMapping(config::byKey('port', 'blea'));
 		$blea_path = realpath(dirname(__FILE__) . '/../../resources/blead');
-		$cmd = 'sudo /usr/bin/python3 ' . $blea_path . '/blead.py';
+		$python = __DIR__ . '/../../resources/python_venv/bin/python3';
+		if (!is_executable($python)) {
+			$python = '/usr/bin/python3';
+		}
+		$cmd = system::getCmdSudo() . escapeshellarg($python) . ' ' . $blea_path . '/blead.py';
 		$cmd .= ' --loglevel ' . log::convertLogLevel(log::getLogLevel('blea'));
 		$cmd .= ' --device ' . $port;
 		$cmd .= ' --socketport ' . config::byKey('socketport', 'blea');

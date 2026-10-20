@@ -1,3 +1,9 @@
+#!/bin/bash
+# Debian 12+ protects the system Python environment (PEP 668).
+. /etc/os-release
+if [ "${VERSION_ID%%.*}" -ge 12 ]; then
+    exec bash "$(dirname -- "$0")/install_apt_venv.sh" "$@"
+fi
 PROGRESS_FILE=/tmp/dependancy_blea_in_progress
 if [ ! -z $1 ]; then
 	PROGRESS_FILE=$1

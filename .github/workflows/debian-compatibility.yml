@@ -1,0 +1,27 @@
+name: Debian Python dependencies and daemon
+on:
+  push:
+    branches: [debian13-python-venv]
+  pull_request:
+    branches: [beta]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  dependencies-and-daemon:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        debian: [bookworm, trixie]
+    container: debian:${{ matrix.debian }}
+    steps:
+      - name: Install checkout and daemon prerequisites
+        run: apt-get update && apt-get install -y git ca-certificates sudo
+      - uses: actions/checkout@v7
+      - name: Install actual BLEA dependencies
+        run: bash resources/install_apt.sh /tmp/blea-progress
+      - name: Verify installed Python dependencies
+        run: resources/python_venv/bin/python3 -c 'import bluepy.btle, bluetooth, requests, serial, pyudev, PIL, numpy, cryptography; from Crypto.Cipher import AES'
+      - name: Test three daemon socket and SIGTERM cycles without a Bluetooth adapter
+        run: python3 tests/daemonLifecycle.py
